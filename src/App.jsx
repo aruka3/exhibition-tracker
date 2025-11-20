@@ -1,7 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { Calendar, MapPin, Plus, Download, X, Camera, ImagePlus } from 'lucide-react';
 
+// Supabase初期化
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 const App = () => {
+  // データベースから展示会を取得
+const fetchExhibitions = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('exhibitions')
+      .select('*')
+      .order('end_date', { ascending: true });
+    
+    if (error) throw error;
+    setExhibitions(data || []);
+  } catch (error) {
+    console.error('Error fetching exhibitions:', error);
+  }
+};
   const [exhibitions, setExhibitions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -14,29 +34,9 @@ const App = () => {
     imagePreview: null
   });
 
-  useEffect(() => {
-    const samples = [
-      {
-        id: 1,
-        title: '印象派展',
-        startDate: '2025-10-15',
-        endDate: '2025-11-10',
-        location: '東京国立博物館',
-        priority: 5,
-        image: null
-      },
-      {
-        id: 2,
-        title: '現代アート展',
-        startDate: '2025-10-20',
-        endDate: '2025-12-25',
-        location: '森美術館',
-        priority: 3,
-        image: null
-      }
-    ];
-    setExhibitions(samples);
-  }, []);
+useEffect(() => {
+  fetchExhibitions();
+}, []);
 
   const getDaysRemaining = (endDate) => {
     const today = new Date();
@@ -74,21 +74,31 @@ const App = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (!formData.title || !formData.startDate || !formData.endDate || !formData.location) {
-      alert('全ての項目を入力してください');
-      return;
-    }
-    const newExhibition = {
-      id: Date.now(),
-      title: formData.title,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      location: formData.location,
-      priority: formData.priority,
-      image: formData.imagePreview
-    };
-    setExhibitions([...exhibitions, newExhibition]);
+ const handleSubmit = async () => {
+  if (!formData.title || !formData.startDate || !formData.endDate || !formData.location) {
+    alert('全ての項目を入力してください');
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('exhibitions')
+      .insert([
+        {
+          title: formData.title,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          location: formData.location,
+          priority: formData.priority,
+          image_url: formData.imagePreview
+        }
+      ]);
+
+    if (error) throw error;
+
+    // 追加後にデータを再取得
+    await fetchExhibitions();
+    
     setFormData({
       title: '',
       startDate: '',
@@ -99,7 +109,12 @@ const App = () => {
       imagePreview: null
     });
     setShowAddForm(false);
-  };
+  } catch (error) {
+    console.error('Error adding exhibition:', error);
+    alert('追加に失敗しました');
+  }
+};
+ 
 
   const downloadCalendar = (exhibition) => {
     const icsContent = [
@@ -313,13 +328,13 @@ const dates = `${formatDate(exhibition.startDate)}/${endDate.toISOString().split
 
             return (
               <div key={exhibition.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
-                {exhibition.image && (
-                  <img 
-                    src={exhibition.image} 
-                    alt={exhibition.title}
-                    className="w-full h-48 object-cover"
-                  />
-                )}
+              {exhibition.image_url && (
+  <img 
+    src={exhibition.image_url} 
+    alt={exhibition.title}
+    className="w-full h-48 object-cover"
+  />
+)}
                 
                 <div className="p-4">
                   <div className="flex justify-between items-start mb-3">
