@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { Calendar, MapPin, Plus, Download, X, Camera, ImagePlus } from 'lucide-react';
 
 // Supabase初期化
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key:', supabaseKey ? 'exists' : 'missing');
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const App = () => {
