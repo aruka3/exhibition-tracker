@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Calendar, MapPin, Plus, Download, X, Camera, ImagePlus } from 'lucide-react';
 
 // Supabase初期化
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 console.log('Supabase URL:', supabaseUrl);
 console.log('Supabase Key:', supabaseKey ? 'exists' : 'missing');
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -15,13 +18,22 @@ const fetchExhibitions = async () => {
       .from('exhibitions')
       .select('*')
       .order('end_date', { ascending: true });
-    
+
     if (error) throw error;
-    setExhibitions(data || []);
+
+    // Supabase のフィールド名 → 画面用のフィールド名にマッピング
+    const mapped = (data || []).map((ex) => ({
+      ...ex,
+      startDate: ex.start_date,
+      endDate: ex.end_date,
+    }));
+
+    setExhibitions(mapped);
   } catch (error) {
     console.error('Error fetching exhibitions:', error);
   }
 };
+
   const [exhibitions, setExhibitions] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
